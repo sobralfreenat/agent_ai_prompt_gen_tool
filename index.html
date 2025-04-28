@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador Interativo de Prompts IA v2.1</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            padding-top: 80px;
+            background-color: #f8f9fa;
+            color: #343a40;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 30px auto;
+            padding: 30px;
+            background-color: #fff;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        /* Header Section Styles */
+        .header-section {
+            display: flex; 
+            align-items: center; 
+            position: fixed; 
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #fff; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+            z-index: 1000; 
+            padding: 10px 30px; /* Keep padding */
+            box-sizing: border-box; 
+            /* min-height ensures space for absolute h1 if logo fails */
+            min-height: 70px; 
+        }
+
+        /* Logo Styles */
+        .logo-container {
+            text-align: left; 
+            margin-bottom: 0; 
+            margin-right: 0; /* Removed margin again */
+            flex-shrink: 0; 
+        }
+        #app-logo {
+            max-height: 50px; 
+            width: auto; 
+            display: block; 
+        }
+
+        h1 {
+            color: #0056b3;
+            text-align: left; 
+            margin: 0; 
+            border-bottom: none; 
+            position: absolute; /* Back to absolute */
+            left: 105px; /* Re-apply left */
+            top: 5px;  /* Re-apply top */
+            font-size: 1.6em; 
+        }
+
+        h2 {
+            color: #0056b3;
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 10px;
+            text-align: left;
+            font-size: 1.4em;
+        }
+
+        .wizard-step {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+            min-height: 200px;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .navigation-buttons button {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+
+        #prev-button {
+            background-color: #6c757d;
+            color: #fff;
+        }
+
+        #prev-button:hover {
+            background-color: #5a6268;
+        }
+
+        #next-button {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        #next-button:hover {
+            background-color: #0056b3;
+        }
+
+        #prev-button:disabled {
+            background-color: #ced4da;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        #copy-button {
+             display: block;
+            width: auto;
+            margin: 20px auto 0;
+            padding: 12px 30px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+         #copy-button:hover {
+            background-color: #218838;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+         #copy-button.copied {
+            background-color: #1e7e34;
+            cursor: default;
+        }
+
+        .prompt-container {
+            background-color: #e9ecef;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background-color: transparent;
+            border: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.95em;
+        }
+        code {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            display: block;
+            line-height: 1.5;
+            color: #212529;
+        }
+        small {
+            display: block;
+            margin-top: 5px;
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+        .review-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #eee;
+        }
+        .review-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .review-item strong {
+            color: #0056b3;
+            display: block;
+            margin-bottom: 3px;
+        }
+        .review-item pre {
+             background-color: #fff;
+             border: 1px solid #e9ecef;
+             padding: 5px;
+             margin-top: 3px;
+             border-radius: 4px;
+             font-size: 0.9em;
+        }
+
+        /* Timeline Navigation Styles */
+        #timeline-nav {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            justify-content: space-between; /* Distribute items evenly */
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 15px;
+        }
+        .timeline-item {
+            cursor: pointer;
+            padding: 8px 12px; /* Slightly more padding */
+            border-radius: 6px; /* Match button radius */
+            text-align: center;
+            font-size: 0.9em;
+            font-weight: 500; /* Slightly bolder */
+            color: #6c757d;
+            background-color: #f8f9fa; /* Light background */
+            border: 1px solid #dee2e6; /* Subtle border */
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+            flex: 1; /* Allow items to grow */
+            margin: 0 5px; /* Add small gap between items */
+        }
+        .timeline-item:first-child { margin-left: 0; }
+        .timeline-item:last-child { margin-right: 0; }
+
+        .timeline-item:hover {
+            background-color: #e9ecef;
+            color: #0056b3;
+            border-color: #adb5bd;
+        }
+        .timeline-item.active {
+            background-color: #007bff;
+            color: white;
+            font-weight: 600; /* Bold active */
+            border-color: #007bff;
+        }
+
+        /* Style for prompt section containers */
+        .prompt-section-container {
+             margin-bottom: 20px; /* Space between sections */
+        }
+         .prompt-section-container h4 {
+             margin-bottom: 10px; /* Space between title and text box */
+             color: #495057;
+             font-size: 1.1em;
+         }
+
+        /* Styles for the new copy buttons section */
+        .copy-buttons-section {
+            text-align: center; /* Center the buttons container */
+            margin-top: 20px;
+        }
+        .copy-btn {
+             /* Inherit base button styles, customize specific ones */
+            padding: 12px 25px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em; /* Slightly smaller than original single button */
+            font-weight: 600;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin: 0 10px; /* Space between buttons */
+            display: inline-block; /* Allow side-by-side */
+        }
+         .copy-btn:hover {
+            background-color: #218838;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+         .copy-btn.copied {
+            background-color: #1e7e34;
+            cursor: default;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px; /* Reduce padding */
+                margin: 15px auto; /* Reduce top/bottom margin */
+            }
+
+            h1 {
+                 font-size: 1.8em; /* Slightly smaller h1 */
+                 margin-bottom: 20px;
+            }
+
+            h2 {
+                 font-size: 1.25em; /* Slightly smaller h2 */
+                 margin-bottom: 20px;
+            }
+
+            #timeline-nav {
+                flex-wrap: wrap; /* Allow items to wrap */
+                padding-bottom: 10px; /* Adjust padding */
+                margin-bottom: 20px;
+            }
+
+            .timeline-item {
+                flex-basis: calc(33.333% - 10px); /* Aim for 3 items per row, considering margins */
+                margin-bottom: 10px; /* Add margin below wrapped items */
+                font-size: 0.85em; /* Slightly smaller font */
+                padding: 6px 8px; /* Adjust padding */
+            }
+            
+            /* Ensure first/last items in a wrapped row don't have extra side margin */
+             .timeline-item:nth-child(3n+1) { margin-left: 0; } 
+             .timeline-item:nth-child(3n) { margin-right: 0; }
+
+            .navigation-buttons {
+                flex-direction: column-reverse; /* Stack buttons, Next on top */
+                 align-items: stretch; /* Make buttons fill width */
+            }
+
+            .navigation-buttons button {
+                 width: 100%; /* Full width buttons */
+                 margin-bottom: 10px; /* Space between stacked buttons */
+            }
+             .navigation-buttons button:last-child {
+                 margin-bottom: 0;
+            }
+             #prev-button {
+                 /* If stacked, prev usually comes second */
+             }
+             #next-button {
+                 /* Ensure next button (now top) has margin */
+                 margin-bottom: 10px;
+             }
+              #copy-button {
+                  width: 100%; /* Full width copy button */
+                  margin-top: 15px;
+              }
+        }
+
+         @media (max-width: 480px) { 
+             .timeline-item { 
+                 flex-basis: calc(50% - 10px); /* Aim for 2 items per row on very small screens */ 
+                 font-size: 0.8em; 
+             }
+              /* Adjust for 2 items per row */
+             .timeline-item:nth-child(3n+1) { margin-left: 5px; }  /* Reset 3-column rule */
+             .timeline-item:nth-child(3n) { margin-right: 5px; }
+             .timeline-item:nth-child(2n+1) { margin-left: 0; } /* Apply 2-column rule */
+             .timeline-item:nth-child(2n) { margin-right: 0; }
+         }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section (Logo + Title) -->
+        <div class="header-section">
+            <!-- Logo -->
+            <div class="logo-container">
+                <img src="https://d1yei2z3i6k35z.cloudfront.net/3119789/680a809b7a548_LogoFNW_SIE02.png" alt="Logo FNW" id="app-logo">
+            </div>
+            <h1>Prompt Gen AI</h1>
+        </div>
+
+        <!-- Timeline Navigation -->
+        <ol id="timeline-nav">
+            <li class="timeline-item active" data-step="1">Persona</li>
+            <li class="timeline-item" data-step="2">Missão</li>
+            <li class="timeline-item" data-step="3">Perspectiva</li>
+            <li class="timeline-item" data-step="4">Crit. Essenciais</li>
+            <li class="timeline-item" data-step="5">Crit. Adicionais</li>
+            <li class="timeline-item" data-step="6">Usuários</li>
+            <li class="timeline-item" data-step="7">Confirmação</li>
+            <li class="timeline-item" data-step="8">Revisão</li>
+        </ol>
+
+        <div id="wizard-steps">
+
+            <!-- Passo 1: Nome/Persona -->
+            <div class="wizard-step active" data-step="1">
+                <h2>Passo 1/8: Nome/Persona do Agente</h2>
+                <div class="form-group">
+                    <label for="agent-name">Qual o Nome ou Persona principal do seu Agente?</label>
+                    <input type="text" id="agent-name" value="Ian 2 - Advisor Executivo IA">
+                    <small>Seja descritivo. Ex: "Analista de Marketing Digital", "Assistente de Suporte Nível 1"</small>
+                </div>
+            </div>
+
+             <!-- Passo 2: Missão -->
+            <div class="wizard-step" data-step="2">
+                <h2>Passo 2/8: Missão Principal</h2>
+                 <div class="form-group">
+                    <label for="agent-mission">Descreva a Missão Principal do Agente:</label>
+                    <textarea id="agent-mission">Atuar como um parceiro estratégico, analisando informações e fornecendo insights acionáveis focado em desenvolvimento de negócios.</textarea>
+                    <small>Qual o papel central e a especialidade principal?</small>
+                </div>
+            </div>
+
+            <!-- Passo 3: Perspectiva Principal -->
+            <div class="wizard-step" data-step="3">
+                <h2>Passo 3/8: Perspectiva Principal</h2>
+                 <div class="form-group">
+                    <label for="primary-perspective">Sob qual Perspectiva Principal ele deve analisar?</label>
+                    <input type="text" id="primary-perspective" value="Desenvolvimento de Negócios">
+                    <small>Ex: "Otimização de Conversão", "Satisfação do Cliente", "Eficiência Operacional"</small>
+                </div>
+            </div>
+
+             <!-- Passo 4: Critérios Essenciais -->
+            <div class="wizard-step" data-step="4">
+                <h2>Passo 4/8: Critérios Essenciais</h2>
+                 <div class="form-group">
+                    <label for="core-criteria">Quais Critérios Essenciais ele deve buscar nessa perspectiva?</label>
+                    <textarea id="core-criteria">*   **Otimização:** Sugestões para melhorar eficiência, processos ou resultados.\n*   **Replicabilidade:** Potencial para aplicar ideias/modelos em outros contextos, projetos ou para outros clientes.\n*   **Escalabilidade:** Como escalar a solução/ideia, identificando gargalos e oportunidades.\n*   **Monetização:** Identificação de potenciais novas fontes de receita ou modelos de negócio.</textarea>
+                    <small>Liste os pontos específicos. Use markdown (como * ou -) para listas, se desejar.</small>
+                </div>
+            </div>
+
+            <!-- Passo 5: Critérios Adicionais -->
+            <div class="wizard-step" data-step="5">
+                <h2>Passo 5/8: Critérios Adicionais (Opcional)</h2>
+                 <div class="form-group">
+                    <label for="additional-criteria">Existem outros Critérios ou Perspectivas a considerar?</label>
+                    <textarea id="additional-criteria">*   **Desenvolvimento Pessoal:** Quando relevante ao contexto da discussão.\n*   **Análise Cognitivo-Semântica:** Preste atenção ao significado profundo, às intenções e às conexões lógicas no conteúdo.</textarea>
+                    <small>Se sim, liste-os aqui. Se não, deixe em branco.</small>
+                </div>
+            </div>
+
+            <!-- Passo 6: Nomes Usuários -->
+            <div class="wizard-step" data-step="6">
+                <h2>Passo 6/8: Identificação de Usuários</h2>
+                 <div class="form-group">
+                    <label for="user-names">Quais os Nomes dos Usuários Principais (separados por vírgula)?</label>
+                    <input type="text" id="user-names" value="Alex">
+                    <small>O primeiro nome será o padrão. A IA usará isso para saber quem está falando.</small>
+                </div>
+            </div>
+
+            <!-- Passo 7: Frase Confirmação -->
+            <div class="wizard-step" data-step="7">
+                 <h2>Passo 7/8: Confirmação do Agente</h2>
+                 <div class="form-group">
+                    <label for="agent-confirmation">Qual Frase o Agente deve usar para indicar que terminou e está pronto?</label>
+                    <input type="text" id="agent-confirmation" value="Estou pronto para o próximo input.">
+                    <small>Ex: "Análise concluída, aguardando próximo comando."</small>
+                </div>
+            </div>
+
+            <!-- Passo 8: Revisão e Geração -->
+            <div class="wizard-step" data-step="8">
+                <h2>Passo 8/8: Revisão e Geração Final</h2>
+                <p>Confira abaixo o resumo das suas respostas e as seções do prompt gerado. Use os botões específicos para copiar cada seção ou "Anterior" para corrigir.</p>
+                <!-- Review Area -->
+                <div id="review-area" class="prompt-container" style="background-color: #f8f9fa; margin-bottom: 20px;">
+                    <!-- Review content will be inserted here by JS -->
+                </div>
+                
+                <!-- Persona Output -->
+                <div class="prompt-section-container">
+                     <h4>Persona, Comportamento e Formato:</h4>
+                     <div class="prompt-container">
+                         <pre><code id="persona-output"></code></pre>
+                     </div>
+                </div>
+                
+                <!-- Conhecimento Output -->
+                 <div class="prompt-section-container">
+                     <h4>Conhecimento e Foco da Análise:</h4>
+                     <div class="prompt-container">
+                         <pre><code id="conhecimento-output"></code></pre>
+                     </div>
+                 </div>
+
+                <!-- Buttons Section -->
+                <div class="copy-buttons-section">
+                     <button id="copy-persona-button" class="copy-btn">Copiar Persona/Comportamento</button><br><br>
+                     <button id="copy-conhecimento-button" class="copy-btn">Copiar Conhecimento/Foco</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="navigation-buttons">
+            <button id="prev-button" disabled>Anterior</button>
+            <button id="next-button">Próximo</button>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const wizardSteps = document.querySelectorAll('.wizard-step');
+            const prevButton = document.getElementById('prev-button');
+            const nextButton = document.getElementById('next-button');
+            const copyPersonaButton = document.getElementById('copy-persona-button');
+            const copyConhecimentoButton = document.getElementById('copy-conhecimento-button');
+            const personaOutputElement = document.getElementById('persona-output');
+            const conhecimentoOutputElement = document.getElementById('conhecimento-output');
+            const reviewArea = document.getElementById('review-area');
+            const timelineItems = document.querySelectorAll('#timeline-nav .timeline-item');
+
+            let currentStep = 1;
+            const totalSteps = wizardSteps.length;
+            let formData = {}; // Initialize empty, will be populated by load or defaults
+            let generatedData = { personaPart: '', conhecimentoPart: '' }; 
+
+            // --- Input Field References --- Map step to ID
+            const fieldMap = {
+                1: ['agent-name'],
+                2: ['agent-mission'],
+                3: ['primary-perspective'],
+                4: ['core-criteria'],
+                5: ['additional-criteria'], // Optional
+                6: ['user-names'],
+                7: ['agent-confirmation'],
+                8: [] // Review step
+            };
+            const inputElements = {
+                agentName: document.getElementById('agent-name'),
+                agentMission: document.getElementById('agent-mission'),
+                primaryPerspective: document.getElementById('primary-perspective'),
+                coreCriteria: document.getElementById('core-criteria'),
+                additionalCriteria: document.getElementById('additional-criteria'),
+                userNames: document.getElementById('user-names'),
+                agentConfirmation: document.getElementById('agent-confirmation')
+            };
+
+            // --- Load Saved Data or Set Defaults --- 
+            function initializeForm() {
+                const savedDataString = localStorage.getItem('promptGenFormData_v3'); // Use a versioned key
+                let loadedData = null;
+                if (savedDataString) {
+                    try {
+                        loadedData = JSON.parse(savedDataString);
+                        console.log("Dados salvos encontrados, carregando...");
+                        formData = loadedData; // Use saved data for the JS object
+                    } catch (e) {
+                        console.error("Erro ao carregar dados salvos:", e);
+                        localStorage.removeItem('promptGenFormData_v3'); // Clear corrupted data
+                        // Proceed to load defaults
+                    }
+                }
+
+                // Populate input fields: Use loadedData if available, otherwise use HTML defaults
+                for (const key in inputElements) {
+                    if (inputElements.hasOwnProperty(key)) {
+                         if (loadedData && loadedData[key] !== undefined) {
+                             inputElements[key].value = loadedData[key];
+                             // Ensure formData also has it (in case it was partially corrupted/missing)
+                             if (!formData[key]) formData[key] = loadedData[key]; 
+                         } else {
+                             // No saved data for this field OR loading failed, use HTML value
+                             const defaultValue = inputElements[key].value; // Get default from HTML
+                             formData[key] = defaultValue; // Populate formData with default
+                         }
+                    } else if (key === 'userNamesRaw' && loadedData && loadedData.userNamesRaw !== undefined) {
+                         // Handle userNamesRaw specifically if it was saved but not in inputElements map directly
+                         inputElements.userNames.value = loadedData.userNamesRaw;
+                         if (!formData.userNamesRaw) formData.userNamesRaw = loadedData.userNamesRaw;
+                    } else if (key === 'userNamesRaw' && !loadedData) {
+                         // Ensure userNamesRaw is initialized from the userNames input default
+                         formData.userNamesRaw = inputElements.userNames.value.trim();
+                    }
+                }
+                
+                if (!loadedData) {
+                     console.log("Nenhum dado salvo encontrado ou erro no carregamento. Usando padrões.");
+                     // Ensure userNamesRaw is initialized if defaults are used
+                     if (!formData.userNamesRaw) formData.userNamesRaw = inputElements.userNames.value.trim();
+                }
+                 console.log("FormData inicializado:", formData);
+            }
+
+            // --- Function to update timeline active state --- 
+            function updateTimelineActive(activeStepNumber) {
+                timelineItems.forEach(item => {
+                    if (parseInt(item.dataset.step) === activeStepNumber) {
+                        item.classList.add('active');
+                    } else {
+                        item.classList.remove('active');
+                    }
+                });
+            }
+
+            function showStep(stepNumber) {
+                wizardSteps.forEach(step => step.classList.remove('active'));
+                const activeStep = document.querySelector(`.wizard-step[data-step="${stepNumber}"]`);
+                if (activeStep) activeStep.classList.add('active');
+                updateNavigationButtons();
+                updateTimelineActive(stepNumber);
+            }
+
+            function updateNavigationButtons() {
+                prevButton.disabled = currentStep === 1;
+                nextButton.textContent = (currentStep === totalSteps -1) ? 'Revisar e Gerar' : 'Próximo';
+
+                if (currentStep === totalSteps) { // Final review step
+                    nextButton.style.display = 'none';
+                    prevButton.style.display = 'inline-block';
+                    copyPersonaButton.style.display = 'inline-block';
+                    copyConhecimentoButton.style.display = 'inline-block';
+                } else {
+                    nextButton.style.display = 'inline-block';
+                    prevButton.style.display = currentStep > 1 ? 'inline-block' : 'none';
+                    copyPersonaButton.style.display = 'none';
+                    copyConhecimentoButton.style.display = 'none';
+                }
+            }
+
+            function gatherStepData(stepNumber) {
+                // Use the inputElements map for cleaner access
+                switch (stepNumber) {
+                    case 1: formData.agentName = inputElements.agentName.value.trim(); break;
+                    case 2: formData.agentMission = inputElements.agentMission.value.trim(); break;
+                    case 3: formData.primaryPerspective = inputElements.primaryPerspective.value.trim(); break;
+                    case 4: formData.coreCriteria = inputElements.coreCriteria.value.trim(); break;
+                    case 5: formData.additionalCriteria = inputElements.additionalCriteria.value.trim(); break;
+                    case 6: formData.userNamesRaw = inputElements.userNames.value.trim(); break;
+                    case 7: formData.agentConfirmation = inputElements.agentConfirmation.value.trim(); break;
+                }
+            }
+
+            function validateStepData(stepNumber) {
+                gatherStepData(stepNumber); // Gather data first
+                let isValid = true;
+                switch (stepNumber) {
+                    case 1: isValid = !!formData.agentName; break;
+                    case 2: isValid = !!formData.agentMission; break;
+                    case 3: isValid = !!formData.primaryPerspective; break;
+                    case 4: isValid = !!formData.coreCriteria; break;
+                    case 5: isValid = true; break; // Optional step
+                    case 6: 
+                        // Need userNamesRaw for prompt generation, get it from the input
+                        formData.userNamesRaw = inputElements.userNames.value.trim();
+                        isValid = !!formData.userNamesRaw; 
+                        break;
+                    case 7: isValid = !!formData.agentConfirmation; break;
+                    default: isValid = true;
+                }
+                if (isValid && stepNumber < totalSteps) { // Only save if valid and not on the final step itself
+                    saveFormData(); // Save after validation is successful for the step
+                }
+                return isValid; 
+            }
+
+            function generatePrompt() {
+                const userNames = formData.userNamesRaw.split(',').map(name => name.trim()).filter(name => name);
+                const defaultUser = userNames[0] || 'Usuário Padrão';
+                const otherUsersMention = userNames.length > 1
+                    ? `Se outro remetente se identificar como ${userNames.slice(1).join(', ')}, registre.`
+                    : `Input padrão é de ${defaultUser}.`;
+
+                // --- Define Parts (without separators) --- 
+                const personaPart = `
+**Sua Identidade:**
+Você é **${formData.agentName}**.
+
+**Estilo de Interação:**
+*   **Início Conversa:**
+    1. Apresente-se: "Olá, eu sou ${formData.agentName.split(' - ')[0]}."
+    2. Pergunte nome: "Qual é o seu nome?"
+    3. Solicite input: "Envie o texto/áudio inicial para análise."
+*   **Processamento Geral:** Transcreva áudios integralmente. Estruture infos em tópicos lógicos. Considere todas as mensagens relevantes para um comentário consolidado.
+*   **Contexto:** Mantenha o contexto (histórico, pessoas, objetivos) para continuidade.
+*   **Formato Saída Sugerido:**
+    \`\`\`
+    **Transcrição (se áudio):**
+    "[Conteúdo transcrito]"
+
+    **Tópicos Principais:**
+    * [Tópico 1]
+    * [Tópico 2]
+    * ...
+
+    **Análise/Comentários:** (Detalhes abaixo em FOCO)
+    * **[Crit. Essenciais]:** [Insights/sugestões]
+    * **[Crit. Adicionais (se aplicável)]:** [Análise adicional]
+    * **Próximos Passos/Questões:** [Próximos passos/perguntas]
+    \`\`\`
+*   **Restrições:**
+    * NUNCA detalhe quem você é (além da apresentação) sem ser perguntado.
+    * NUNCA use saudações genéricas como "Como posso ajudar?".
+*   **Confirmação Final:** Ao final, avise: "${formData.agentConfirmation}"
+                `.trim();
+                
+                const conhecimentoPart = `
+**Sua Missão Principal:**
+${formData.agentMission}
+
+**Foco Principal da Análise:**
+*   **Perspectiva Central:** ${formData.primaryPerspective}
+*   **Critérios Essenciais a Buscar:**
+${formData.coreCriteria}
+
+**Critérios Adicionais (se houver):**
+${formData.additionalCriteria ? formData.additionalCriteria : 'Nenhum'}
+
+**Identificação de Usuário:**
+*   ${defaultUser} é o remetente padrão. ${otherUsersMention}
+                `.trim();
+
+                const fullPrompt = personaPart + "\n\n" + conhecimentoPart;
+                
+                console.log("Prompt gerado com", fullPrompt.length, "caracteres.");
+
+                // Return object with parts
+                return { 
+                    fullPrompt: fullPrompt, 
+                    personaPart: personaPart, 
+                    conhecimentoPart: conhecimentoPart 
+                };
+            }
+
+            function displayReview() {
+                // Sanitize HTML content before inserting (basic example)
+                const sanitize = (str) => str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                
+                reviewArea.innerHTML = `
+                    <h4>Resumo das Informações:</h4>
+                    <div class="review-item"><strong>Nome/Persona:</strong> ${sanitize(formData.agentName || 'Não definido')}</div>
+                    <div class="review-item"><strong>Missão:</strong><pre>${sanitize(formData.agentMission || 'Não definido')}</pre></div>
+                    <div class="review-item"><strong>Perspectiva Principal:</strong> ${sanitize(formData.primaryPerspective || 'Não definido')}</div>
+                    <div class="review-item"><strong>Critérios Essenciais:</strong><pre>${sanitize(formData.coreCriteria || 'Não definido')}</pre></div>
+                    <div class="review-item"><strong>Critérios Adicionais:</strong><pre>${sanitize(formData.additionalCriteria || 'Nenhum')}</pre></div>
+                    <div class="review-item"><strong>Nomes Usuários:</strong> ${sanitize(formData.userNamesRaw || 'Não definido')}</div>
+                    <div class="review-item"><strong>Frase Confirmação:</strong> ${sanitize(formData.agentConfirmation || 'Não definido')}</div>
+                `;
+            }
+
+            function handleFinalStepGeneration() {
+                 try { 
+                    generatedData = generatePrompt(); // Generate and store parts globally
+                    // Populate the two separate output areas
+                    personaOutputElement.textContent = generatedData.personaPart; 
+                    conhecimentoOutputElement.textContent = generatedData.conhecimentoPart;
+                    displayReview();
+                 } catch (error) {
+                    console.error("Error generating on Final Step:", error);
+                    // Display error in both areas for clarity
+                    personaOutputElement.textContent = `Erro ao gerar Persona: ${error.message}`; 
+                    conhecimentoOutputElement.textContent = `Erro ao gerar Conhecimento: ${error.message}`; 
+                    reviewArea.innerHTML = `Erro ao revisar: ${error.message}`; 
+                }
+            }
+
+            // --- Save Data Function --- 
+            function saveFormData() {
+                 try {
+                     // Ensure userNamesRaw is captured correctly before saving
+                     if (inputElements.userNames) { 
+                         formData.userNamesRaw = inputElements.userNames.value.trim();
+                     }
+                     localStorage.setItem('promptGenFormData_v3', JSON.stringify(formData));
+                     // console.log("Dados salvos no localStorage."); // Optional confirmation
+                 } catch (e) {
+                     console.error("Erro ao salvar dados no localStorage:", e);
+                 }
+            }
+
+            nextButton.addEventListener('click', () => {
+                if (!validateStepData(currentStep)) { // Validation now triggers save
+                    alert("Por favor, preencha o campo obrigatório neste passo.");
+                    try {
+                        const currentFields = fieldMap[currentStep];
+                        if (currentFields && currentFields.length > 0) {
+                             const fieldId = currentFields[0]; 
+                             document.getElementById(fieldId)?.focus();
+                        }
+                     } catch(e) { console.error("Error focusing field:", e); }
+                    return; 
+                } 
+                // Remove gatherStepData and saveFormData calls here, handled by validateStepData
+                
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    showStep(currentStep);
+                    if(currentStep === totalSteps) {
+                        handleFinalStepGeneration();
+                    }
+                }
+            });
+
+            prevButton.addEventListener('click', () => {
+                // No saving needed when going back
+                if (currentStep > 1) {
+                    currentStep--;
+                    showStep(currentStep);
+                }
+            });
+
+            // --- Timeline Click Listener --- 
+            timelineItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    const targetStep = parseInt(e.target.dataset.step);
+                    if (targetStep === currentStep) return;
+
+                    if (targetStep > currentStep) {
+                        for (let stepToValidate = currentStep; stepToValidate < targetStep; stepToValidate++) {
+                            if (!validateStepData(stepToValidate)) { // Validation now triggers save
+                                alert(`Por favor, preencha os campos obrigatórios no Passo ${stepToValidate} antes de avançar.`);
+                                return; // Stop the jump
+                            }
+                            // Remove explicit saveFormData call here
+                        }
+                    }
+                    
+                    currentStep = targetStep;
+                    showStep(currentStep);
+
+                    if(currentStep === totalSteps) {
+                        handleFinalStepGeneration();
+                    }
+                });
+            });
+
+            // --- New Copy Button Listeners --- 
+            function copyToClipboard(text, buttonElement) {
+                console.log("copyToClipboard received text (first 50 chars):", text ? text.substring(0, 50) : 'No text received'); // Log received text
+                if (!text) {
+                    alert("Nada para copiar.");
+                    return;
+                }
+                navigator.clipboard.writeText(text)
+                    .then(() => {
+                        const originalText = buttonElement.textContent;
+                        buttonElement.textContent = 'Copiado!';
+                        buttonElement.classList.add('copied');
+                        buttonElement.disabled = true; 
+                        setTimeout(() => {
+                            buttonElement.textContent = originalText;
+                            buttonElement.classList.remove('copied');
+                            buttonElement.disabled = false; 
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Erro ao copiar: ', err);
+                        alert('Erro ao copiar. Verifique o console.');
+                    });
+            }
+
+            copyPersonaButton.addEventListener('click', () => {
+                console.log("Attempting to copy Persona. Data:", generatedData.personaPart ? generatedData.personaPart.substring(0,50)+'...' : 'Persona part is empty/undefined'); // Log before copy
+                copyToClipboard(generatedData.personaPart, copyPersonaButton);
+            });
+
+            copyConhecimentoButton.addEventListener('click', () => {
+                console.log("Attempting to copy Conhecimento. Data:", generatedData.conhecimentoPart ? generatedData.conhecimentoPart.substring(0,50)+'...' : 'Conhecimento part is empty/undefined'); // Log before copy
+                copyToClipboard(generatedData.conhecimentoPart, copyConhecimentoButton);
+            });
+
+            // Initialize
+            initializeForm(); // Call the new initialization function
+            updateNavigationButtons(); 
+            showStep(currentStep); // Show the initial step (might be loaded)
+        });
+    </script>
+</body>
+</html>
